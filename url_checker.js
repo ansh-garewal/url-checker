@@ -27,6 +27,24 @@ function extractValuesFromUrl(url) {
 
 const client = new MongoClient(uri);
 
+async function checkAndUpdateUrlStatus(url) {
+    try {
+        const statusCode = await checkUrlStatus(url);
+        console.log(`URL ${url} status code: ${statusCode}`);
+
+        if (statusCode >= 200 && statusCode < 300) {
+            console.log('URL is active');
+            return true;
+        } else {
+            console.log('URL is not active');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error checking URL status:', error);
+        return false;
+    }
+}
+
 async function connect() {
     try {
         await client.connect();
@@ -63,47 +81,9 @@ async function connect() {
                 meta_url_is_active: false,
             };
 
-            try {
-                const statusCode = await checkUrlStatus(updated_print_url);
-                console.log(`URL ${updated_print_url} status code: ${statusCode}`);
-
-                if (statusCode >= 200 && statusCode < 300) {
-                    updated_object.print_url_is_active = true;
-                    console.log('URL is OK');
-                } else {
-                    console.log(`${updated_print_url} - URL is not OK`);
-                }
-            } catch (error) {
-                console.error('Error checking URL status:', error);
-            }
-
-            try {
-                const statusCode = await checkUrlStatus(updated_augment_url);
-                console.log(`URL ${updated_augment_url} status code: ${statusCode}`);
-
-                if (statusCode >= 200 && statusCode < 300) {
-                    updated_object.augment_url_is_active = true;
-                    console.log('URL is OK');
-                } else {
-                    console.log(`${updated_augment_url} - URL is not OK`);
-                }
-            } catch (error) {
-                console.error('Error checking URL status:', error);
-            }
-
-            try {
-                const statusCode = await checkUrlStatus(meta_url);
-                console.log(`URL ${meta_url} status code: ${statusCode}`);
-
-                if (statusCode >= 200 && statusCode < 300) {
-                    updated_object.meta_url_is_active = true;
-                    console.log('URL is OK');
-                } else {
-                    console.log(`${meta_url} - URL is not OK`);
-                }
-            } catch (error) {
-                console.error('Error checking URL status:', error);
-            }
+            updated_object.print_url_is_active = await checkAndUpdateUrlStatus(updated_print_url);
+            updated_object.augment_url_is_active = await checkAndUpdateUrlStatus(updated_augment_url);
+            updated_object.meta_url_is_active =  await checkAndUpdateUrlStatus(meta_url);
 
             log_data.push(updated_object);
         }
